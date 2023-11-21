@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.cw.blog.mapper.UserMapper">
+    <select id="search" resultMap="BaseResultMap">
+        select id,name from s
+    </select>
+
+    <resultMap id="BaseResultMap" type="org.cw.blog.bean.User">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+    </resultMap>
+</mapper>
