@@ -44,3 +44,90 @@ public void export(File output, Index index) throws IOException {
 			exporter.exportToFile(usrOutput);
 		}
 	}
+	public void exportTo(File output, Index index) throws IOException {
+		MimXmlExporter xmlExporter = MimXmlExporter.from(moduleName, index);
+		xmlExporter.exportToMimFile(output);
+	}
+        public void exportToMimFile(File output) {
+		XmlNode root = getXmlNode();
+		File sourcemap = new File(output.getParentFile(), output.getName() + ".map");
+		XmlExporterBasic.writeXml(output, sourcemap, root);
+	}
+	public XmlNode getXmlNode() {
+		XmlNode root = XmlNode.empty();
+		XmlNode moduleNode = root.get("module")
+				.attribute("xmlNamespace", "http://www.huawei.com/netconf/vrp")
+				.attribute("AutoRefreshId", "false")
+				.attribute("name", moduleName);
+		exportScripting(moduleNode);
+		exportDatatypes(moduleNode);
+		exportClasses(moduleNode);
+		exportDatasets(moduleNode);
+		exportSubscriptions(moduleNode);
+		return root;
+	}
+	private void exportClasses(XmlNode root) {
+		XmlNode dimNode = root.get("dim", "classlist");
+		for (WithLocation<MimData> mimDataWithLocation : index.getMimDatas(moduleName)) {
+			MimData mimData = mimDataWithLocation.getData();
+			Map<AssociationData, Boolean> associations = new HashMap<>();
+			for (MimClassData dim : mimData.extractSpecificClasses(ClassTypes.CFG)) {
+				exportDim(dimNode, dim, mimDataWithLocation.getUri(), mimData.getImports());
+				for (AssociationData assoc : dim.getAssociations()) {
+					if (dim.getVisibilityData() != null) {
+						associations.put(assoc, dim.getVisibilityData().isPublic().getValue());
+					}
+				}
+			}
+
+			exportAssociations(root.get("dim", "classrelation"), associations, mimData.getImports());
+
+			Optional<DefaultRecordsData> compCommRelRecord = mimData.getDefaultRecords()
+					.stream()
+					.filter(d -> d.getClassName().getText().equals("CompCommRel"))
+					.findAny();
+
+
+			if (compCommRelRecord.isPresent()) {
+				exportCommRelRecord(root.get("compCommRelRecord "), compCommRelRecord.get());
+			}
+
+			List<DefaultRecordsData> defaultRecords = index.getMimDatas(moduleName)
+					.unwrapData()
+					.flatMap(MimData::getDefaultRecords)
+					.filter(d -> !d.getClassName().getText().equals("CompCommRel"))
+					.toList();
+
+			if(defaultRecords.size()>0){
+				for (DefaultRecordsData dim : defaultRecords) {
+					exportDim(dimNode, dim);
+				}
+			}
+
+
+			XmlNode damRoot = root.get("dam");
+
+			for (MimClassData dam : mimData.extractSpecificClasses(ClassTypes.DAM)) {
+				exportDam(damRoot, dam, mimData.getImports());
+			}
+
+			XmlNode dynRoot = root.get("dynamicClass");
+			for (MimClassData dyn : mimData.extractSpecificClasses(ClassTypes.DYN)) {
+				exportDyn(dynRoot, dyn, mimDataWithLocation.getUri(), mimData.getImports());
+			}
+
+			XmlNode complexCommandsNode = root.get("dom", "complexCommand");
+			for (MimClassData dom : mimData.extractSpecificClasses(ClassTypes.DOM)) {
+				exportParaTable(complexCommandsNode, dom, false, mimDataWithLocation.getUri(), mimData.getImports());
+			}
+
+			XmlNode actionCommandsNode = root.get("dom", "actionCommand");
+			for (MimClassData act : mimData.extractSpecificClasses(ClassTypes.ACT)) {
+				exportParaTable(actionCommandsNode, act, true, mimDataWithLocation.getUri(), mimData.getImports());
+			}
+
+			for (MimClassData qry : mimData.extractSpecificClasses(ClassTypes.QRY)) {
+				exportQuery(root.get("dom", "queryView"), qry, mimDataWithLocation.getUri(), mimData.getImports());
+			}
+		}
+	}
