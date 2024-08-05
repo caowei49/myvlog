@@ -1,0 +1,46 @@
+public void export(File output, Index index) throws IOException {
+		if (mimFiles.size() > 0) {
+			File dir = mimFiles.get(0).getParentFile();
+
+			if (output != null) {
+				dir = output;
+			}
+
+			File mimOutput = new File(dir, moduleName + POSTFIX_MIM_XML);
+			File enumsOutput = new File(dir, moduleName.toLowerCase() + POSTFIX_DATATYPE_ENUM_H);
+			File structsOutput = new File(dir, moduleName.toLowerCase() + POSTFIX_DATATYPE_H);
+
+			File mimIfOutput = new File(dir, moduleName + POSTFIX_MIM_IF);
+            File innerMimIfOutput = new File(dir , moduleName + POSTFIX_INNER_MIM_IF);
+            File innerEnumsOutput = new File(dir, moduleName.toLowerCase() + POSTFIX_INNER_DATATYPE_ENUM_H);
+			File innerStructsOutput = new File(dir, moduleName.toLowerCase() + POSTFIX_INNER_DATATYPE_H);
+
+			exportEnums(enumsOutput, index);
+			exportStructs(structsOutput, index);
+			exportTo(mimOutput, index);
+
+			exportMimIf(mimIfOutput, index);
+			exportInnerMimIf(innerMimIfOutput, index);
+			exportInnerEnums(innerEnumsOutput, index);
+			exportInnerStructs(innerStructsOutput, index);
+			exportCids(dir, index);
+		}
+
+		List<DefaultRecordsData> defaultRecords = index.getMimDatas(moduleName)
+				.unwrapData()
+				.flatMap(MimData::getDefaultRecords)
+				.filter(d -> !d.getClassName().getText().equals("CompCommRel"))
+				.toList();
+
+		if (defaultRecords.size() > 0) {
+			File dir = mimFiles.get(0).getParentFile();
+
+			if (output != null) {
+				dir = output;
+			}
+
+			File usrOutput = new File(dir, moduleName + POSTFIX_USR_XML);
+			UsrXmlExporter exporter = new UsrXmlExporter(moduleName, defaultRecords);
+			exporter.exportToFile(usrOutput);
+		}
+	}
