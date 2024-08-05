@@ -1,0 +1,38 @@
+	public void exportToFile(File output) {
+		XmlNode root = XmlNode.empty();
+		XmlNode moduleNode = root.get("module")
+				.attribute("xmlNamespace", "http://www.huawei.com/netconf/vrp")
+				.attribute("AutoRefreshId", "false")
+				.attribute("name", moduleName);
+		exportClasses(moduleNode);
+
+		File sourcemap = new File(output.getParentFile(), output.getName() + ".map");
+		XmlExporterBasic.writeXml(output, sourcemap, root);
+	}
+	private void exportClasses(XmlNode root) {
+		XmlNode dimNode = root.get("dim", "classlist");
+		for (DefaultRecordsData dim : records) {
+			exportDim(dimNode, dim);
+		}
+	}
+
+	private void exportDim(final XmlNode root, final DefaultRecordsData dim) {
+		XmlNode dimNode = root.child("class")
+				.attribute("opright", "add|del|modify|query")
+				.attribute("name", dim.getClassName().getText());
+		exportRecords(dimNode.child("defaultrecord"), dim.getValues());
+
+	}
+
+	private void exportRecords(XmlNode xmlNode, List<Map<RangedString, String>> values) {
+		for (Map<RangedString, String> val : values) {
+			XmlNode recordNode = xmlNode.child("record")
+					.attribute("domain", "LR|PR|VR")
+					.attribute("opright", "add|del|modify|query");
+			for (Entry<RangedString, String> attrs : val.entrySet()) {
+				recordNode.child("attr")
+						.attribute("name", attrs.getKey().getText())
+						.attribute("value", attrs.getValue());
+			}
+		}
+	}
