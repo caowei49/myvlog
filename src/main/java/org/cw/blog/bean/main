@@ -1,0 +1,11 @@
+	private static void exportModule(ExportableModule module, File output, Index index) {
+		if (module.validate()) {
+			try {
+				module.export(output, index);
+			} catch (IOException e) {
+				System.err.println(
+						String.format("Failed to export module `%s`: %s", module.getModuleName(), e.getMessage()));
+				System.exit(-1);
+			}
+		}
+	}
